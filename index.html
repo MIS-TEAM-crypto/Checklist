@@ -1,70 +1,98 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>DoerDesk</title>
+  <style>
+    body{font-family:Arial;padding:20px;background:#f5f5f5;}
+    h2{margin-top:30px;}
+    table{width:100%;border-collapse:collapse;background:#fff;}
+    th,td{padding:10px;border:1px solid #ddd;text-align:left;}
+    button{padding:5px 10px;margin:2px;cursor:pointer;}
+    input,select{padding:6px;margin:4px;}
+  </style>
+</head>
+
+<body>
+
+<h1>DoerDesk</h1>
+
+<!-- ADD DOER -->
+<h2>Add Doer</h2>
+<input id="d-name" placeholder="Name">
+<input id="d-dept" placeholder="Department">
+<input id="d-email" placeholder="Email">
+<input id="d-phone" placeholder="Phone">
+<button onclick="addDoer()">Add Doer</button>
+
+<!-- DOER LIST -->
+<h2>Doer List</h2>
+<table>
+<thead>
+<tr><th>Name</th><th>Dept</th><th>Email</th><th>Phone</th><th>Action</th></tr>
+</thead>
+<tbody id="doerTable"></tbody>
+</table>
+
+<!-- ADD TASK -->
+<h2>Add Task</h2>
+<input id="t-task" placeholder="Task">
+<select id="t-doer"></select>
+<input id="t-dept" placeholder="Dept">
+<input id="t-freq" placeholder="Freq">
+<input id="t-day" placeholder="Day/Date">
+<select id="t-status">
+<option>Pending</option>
+<option>Done</option>
+</select>
+<button onclick="addTask()">Add Task</button>
+
+<!-- TASK LIST -->
+<h2>Task List</h2>
+<table>
+<thead>
+<tr><th>Task</th><th>Doer</th><th>Dept</th><th>Freq</th><th>Day</th><th>Status</th><th>Action</th></tr>
+</thead>
+<tbody id="taskTable"></tbody>
+</table>
+
 <script>
-// CONFIG
-const GAS_URL = 'https://script.google.com/macros/s/AKfycbwL62TE0xjATWJrU0inh2yrNCHWdJ4EbJCMM-N9zU7tWw5FyyZUwQm7zVgFXyTow20e/exec';
+// 🔴 PUT YOUR GAS URL HERE
+const GAS_URL = "https://script.google.com/macros/s/AKfycbwL62TE0xjATWJrU0inh2yrNCHWdJ4EbJCMM-N9zU7tWw5FyyZUwQm7zVgFXyTow20e/exec";
 
 // STORE
-let doers = [];
-let tasks = [];
-let editTaskRow = null;
-let editDoerRow = null;
-let waPhone = '';
+let doers=[], tasks=[];
 
 // API
-async function apiGet(action){
-  const res = await fetch(GAS_URL + '?action=' + action);
-  return res.json();
-}
-async function apiPost(action,data){
-  const res = await fetch(GAS_URL,{
-    method:'POST',
-    body: JSON.stringify({action,data})
-  });
-  return res.json();
+async function getData(){
+  const res = await fetch(GAS_URL+"?action=getAllData");
+  const data = await res.json();
+  doers = data.doers;
+  tasks = data.tasks;
+  render();
 }
 
-// NORMALIZE
-function normalizeTask(r){
-  return {
-    _row: r._row,
-    task: r.task,
-    doerName: r.doerName,
-    department: r.department,
-    frequency: r.frequency,
-    daydate: r.daydate,
-    status: r.status
-  };
-}
-function normalizeDoer(r){
-  return {
-    _row: r._row,
-    name: r.name,
-    department: r.department,
-    email: r.email,
-    phone: r.phone
-  };
-}
+// RENDER
+function render(){
+  // DOERS
+  document.getElementById('doerTable').innerHTML = doers.map(d=>`
+    <tr>
+      <td>${d.name}</td>
+      <td>${d.department}</td>
+      <td>${d.email||''}</td>
+      <td>${d.phone||''}</td>
+      <td>
+        <button onclick="deleteDoer(${d._row})">Delete</button>
+      </td>
+    </tr>
+  `).join('');
 
-// SYNC
-async function syncAll(){
-  const res = await apiGet('getAllData');
-  doers = res.doers.map(normalizeDoer);
-  tasks = res.tasks.map(normalizeTask);
-  renderTasks();
-  renderDoers();
-  populateDoerSelect();
-}
+  // DROPDOWN
+  document.getElementById('t-doer').innerHTML =
+    doers.map(d=>`<option>${d.name}</option>`).join('');
 
-// ───────── TASK RENDER ─────────
-function renderTasks(){
-  const tbody = document.getElementById('task-tbody');
-  if(!tasks.length){
-    tbody.innerHTML = `<tr><td colspan="7">No Data</td></tr>`;
-    return;
-  }
-
-  tbody.innerHTML = tasks.map(t=>{
-    const d = doers.find(x=>x.name===t.doerName)||{};
-    return `<tr>
+  // TASKS
+  document.getElementById('taskTable').innerHTML = tasks.map(t=>`
+    <tr>
       <td>${t.task}</td>
       <td>${t.doerName}</td>
       <td>${t.department}</td>
@@ -72,108 +100,72 @@ function renderTasks(){
       <td>${t.daydate}</td>
       <td>${t.status}</td>
       <td>
-        <button onclick="editTask(${t._row})">Edit</button>
-        <button onclick="deleteTask(${t._row})">Del</button>
-        ${d.phone?`<button onclick="openWA('${t.task}','${t.doerName}','${d.phone}','${t.frequency}')">WA</button>`:''}
-      </td>
-    </tr>`;
-  }).join('');
-}
-
-// ───────── DOER RENDER ─────────
-function renderDoers(){
-  const tbody = document.getElementById('doer-tbody');
-  tbody.innerHTML = doers.map(d=>`
-    <tr>
-      <td>${d.name}</td>
-      <td>${d.department}</td>
-      <td>${d.email||''}</td>
-      <td>${d.phone||''}</td>
-      <td>
-        <button onclick="editDoer(${d._row})">Edit</button>
-        <button onclick="deleteDoer(${d._row})">Del</button>
+        <button onclick="deleteTask(${t._row})">Delete</button>
+        <button onclick="sendWA('${t.doerName}','${t.task}')">WA</button>
       </td>
     </tr>
   `).join('');
 }
 
-// ───────── ADD TASK ─────────
-async function saveTask(){
-  const data = {
-    task: document.getElementById('t-task').value,
-    doerName: document.getElementById('t-doer').value,
-    department: document.getElementById('t-dept').value,
-    frequency: document.getElementById('t-freq').value,
-    daydate: document.getElementById('t-day').value,
-    status: document.getElementById('t-status').value
+// ADD DOER
+async function addDoer(){
+  const data={
+    name: d-name.value,
+    department: d-dept.value,
+    email: d-email.value,
+    phone: d-phone.value
   };
-  await apiPost('addTask',data);
-  syncAll();
+  await fetch(GAS_URL,{
+    method:"POST",
+    body:JSON.stringify({action:"addDoer",data})
+  });
+  getData();
 }
 
-// ───────── EDIT TASK ─────────
-function editTask(row){
-  const t = tasks.find(x=>x._row==row);
-  editTaskRow = row;
-  document.getElementById('et-task').value = t.task;
-  document.getElementById('et-day').value = t.daydate;
-  document.getElementById('edit-task-modal').classList.add('open');
-}
-
-async function updateTask(){
-  const t = tasks.find(x=>x._row==editTaskRow);
-  const data = {
-    _row: editTaskRow,
-    task: document.getElementById('et-task').value,
-    doerName: t.doerName,
-    department: t.department,
-    frequency: t.frequency,
-    daydate: document.getElementById('et-day').value,
-    status: t.status
-  };
-  await apiPost('updateTask',data);
-  closeEditTask();
-  syncAll();
-}
-
-// ───────── DELETE TASK ─────────
-async function deleteTask(row){
-  if(!confirm('Delete?')) return;
-  await apiPost('deleteTask',{_row:row});
-  syncAll();
-}
-
-// ───────── ADD DOER ─────────
-async function saveDoer(){
-  const data = {
-    name: document.getElementById('f-name').value,
-    department: document.getElementById('f-dept').value,
-    email: document.getElementById('f-email').value,
-    phone: document.getElementById('f-phone').value
-  };
-  await apiPost('addDoer',data);
-  syncAll();
-}
-
-// ───────── DELETE DOER ─────────
+// DELETE DOER
 async function deleteDoer(row){
-  if(!confirm('Delete?')) return;
-  await apiPost('deleteDoer',{_row:row});
-  syncAll();
+  await fetch(GAS_URL,{
+    method:"POST",
+    body:JSON.stringify({action:"deleteDoer",data:{_row:row}})
+  });
+  getData();
 }
 
-// ───────── DOER SELECT ─────────
-function populateDoerSelect(){
-  const sel = document.getElementById('t-doer');
-  sel.innerHTML = doers.map(d=>`<option>${d.name}</option>`).join('');
+// ADD TASK
+async function addTask(){
+  const data={
+    task: t-task.value,
+    doerName: t-doer.value,
+    department: t-dept.value,
+    frequency: t-freq.value,
+    daydate: t-day.value,
+    status: t-status.value
+  };
+  await fetch(GAS_URL,{
+    method:"POST",
+    body:JSON.stringify({action:"addTask",data})
+  });
+  getData();
 }
 
-// ───────── WHATSAPP ─────────
-function openWA(task,name,phone,freq){
-  const msg = encodeURIComponent(`Hello ${name}, Task: ${task}`);
-  window.open(`https://web.whatsapp.com/send?phone=${phone}&text=${msg}`);
+// DELETE TASK
+async function deleteTask(row){
+  await fetch(GAS_URL,{
+    method:"POST",
+    body:JSON.stringify({action:"deleteTask",data:{_row:row}})
+  });
+  getData();
+}
+
+// WHATSAPP
+function sendWA(name,task){
+  const msg = encodeURIComponent(`Hello ${name}, please complete task: ${task}`);
+  window.open(`https://wa.me/?text=${msg}`);
 }
 
 // INIT
-syncAll();
+getData();
 </script>
+
+</body>
+</html>
