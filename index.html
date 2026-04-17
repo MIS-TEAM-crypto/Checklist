@@ -1,0 +1,962 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>DoerDesk</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+:root {
+  --bg: #f4f3ef;
+  --surface: #ffffff;
+  --surface2: #f9f8f5;
+  --border: #e2e0d8;
+  --text: #1a1916;
+  --text2: #6b6860;
+  --text3: #a8a69f;
+  --accent: #2d6a4f;
+  --accent-light: #d8ede4;
+  --warn: #b45309;
+  --warn-light: #fef3c7;
+  --danger: #991b1b;
+  --danger-light: #fee2e2;
+  --info: #1e40af;
+  --info-light: #dbeafe;
+  --wa: #25D366;
+  --radius: 10px;
+  --font: 'DM Sans', sans-serif;
+  --mono: 'DM Mono', monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:14px;line-height:1.5;}
+button{font-family:var(--font);cursor:pointer;}
+input,select,textarea{font-family:var(--font);}
+
+/* NAV */
+.nav{background:var(--surface);border-bottom:1px solid var(--border);padding:0 24px;display:flex;align-items:center;gap:0;position:sticky;top:0;z-index:100;}
+.nav-logo{font-size:15px;font-weight:600;color:var(--text);padding:16px 0;margin-right:32px;letter-spacing:-0.3px;}
+.nav-logo span{color:var(--accent);}
+.nav-tabs{display:flex;gap:0;flex:1;}
+.nav-tab{padding:16px 18px;font-size:13px;font-weight:500;color:var(--text2);border:none;background:none;border-bottom:2px solid transparent;cursor:pointer;transition:all 0.15s;white-space:nowrap;}
+.nav-tab:hover{color:var(--text);}
+.nav-tab.active{color:var(--accent);border-bottom-color:var(--accent);}
+.nav-sync{display:flex;align-items:center;gap:8px;margin-left:auto;}
+.sync-status{font-size:11px;color:var(--text3);display:flex;align-items:center;gap:5px;}
+.sync-dot{width:7px;height:7px;border-radius:50%;background:var(--text3);}
+.sync-dot.ok{background:#10b981;}
+.sync-dot.err{background:var(--danger);}
+.sync-dot.loading{background:var(--warn);animation:pulse 1s infinite;}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:0.4;}}
+
+/* LAYOUT */
+.page{display:none;padding:24px;max-width:1200px;margin:0 auto;}
+.page.active{display:block;}
+
+/* CARDS */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px;}
+.card-title{font-size:13px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:16px;}
+
+/* STAT GRID */
+.stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:20px;}
+.stat{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px;}
+.stat-val{font-size:28px;font-weight:600;color:var(--text);line-height:1;margin-bottom:4px;font-variant-numeric:tabular-nums;}
+.stat-lbl{font-size:12px;color:var(--text2);}
+.stat.danger .stat-val{color:var(--danger);}
+.stat.warn .stat-val{color:var(--warn);}
+.stat.good .stat-val{color:var(--accent);}
+
+/* BADGE */
+.badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:99px;font-size:11px;font-weight:500;white-space:nowrap;}
+.badge.done{background:#d1fae5;color:#065f46;}
+.badge.pending{background:var(--warn-light);color:var(--warn);}
+.badge.overdue{background:var(--danger-light);color:var(--danger);}
+.badge.today{background:var(--info-light);color:var(--info);}
+.badge.freq{background:var(--surface2);color:var(--text2);border:1px solid var(--border);}
+
+/* TABLE */
+.tbl-wrap{overflow-x:auto;}
+table{width:100%;border-collapse:collapse;font-size:13px;}
+thead th{padding:8px 12px;text-align:left;font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:0.05em;border-bottom:1px solid var(--border);background:var(--surface2);}
+tbody tr{border-bottom:1px solid var(--border);transition:background 0.1s;}
+tbody tr:last-child{border-bottom:none;}
+tbody tr:hover{background:var(--surface2);}
+tbody td{padding:10px 12px;vertical-align:middle;}
+
+/* FORMS */
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+.form-group{display:flex;flex-direction:column;gap:5px;}
+.form-group.full{grid-column:1/-1;}
+label{font-size:12px;font-weight:500;color:var(--text2);}
+input[type=text],input[type=email],input[type=tel],select{height:36px;padding:0 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;color:var(--text);background:var(--surface);outline:none;transition:border-color 0.15s;}
+input[type=text]:focus,input[type=email]:focus,input[type=tel]:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(45,106,79,0.1);}
+input[type=date]{height:36px;padding:0 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;color:var(--text);background:var(--surface);outline:none;}
+
+/* BUTTONS */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:0 16px;height:36px;border-radius:6px;font-size:13px;font-weight:500;border:none;transition:all 0.15s;}
+.btn-primary{background:var(--accent);color:#fff;}
+.btn-primary:hover{background:#1f4d39;}
+.btn-outline{background:transparent;border:1px solid var(--border);color:var(--text2);}
+.btn-outline:hover{border-color:var(--text2);color:var(--text);}
+.btn-wa{background:var(--wa);color:#fff;font-weight:600;}
+.btn-wa:hover{background:#1da851;}
+.btn-danger{background:var(--danger-light);color:var(--danger);border:1px solid #fca5a5;}
+.btn-sm{height:28px;padding:0 10px;font-size:12px;}
+
+/* MODAL */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.35);z-index:200;align-items:center;justify-content:center;}
+.modal-overlay.open{display:flex;}
+.modal{background:var(--surface);border-radius:14px;padding:24px;width:100%;max-width:520px;box-shadow:0 20px 60px rgba(0,0,0,0.15);}
+.modal-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;}
+.modal-title{font-size:15px;font-weight:600;}
+.modal-close{background:none;border:none;font-size:18px;color:var(--text2);cursor:pointer;line-height:1;}
+.modal-footer{display:flex;justify-content:flex-end;gap:8px;margin-top:20px;}
+
+/* DASHBOARD SPECIFIC */
+.followup-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);}
+.followup-row:last-child{border-bottom:none;}
+.followup-info{flex:1;}
+.followup-name{font-size:13px;font-weight:500;}
+.followup-task{font-size:12px;color:var(--text2);}
+.followup-right{display:flex;align-items:center;gap:8px;}
+.day-section{margin-bottom:20px;}
+.day-label{font-size:12px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:10px;display:flex;align-items:center;gap:8px;}
+.day-badge{background:var(--text);color:#fff;padding:2px 8px;border-radius:99px;font-size:10px;}
+.day-badge.today-mark{background:var(--accent);}
+.day-badge.tmrw{background:var(--warn);}
+.day-badge.d2{background:var(--info);}
+
+/* SEARCH + FILTER */
+.toolbar{display:flex;gap:8px;align-items:center;margin-bottom:16px;flex-wrap:wrap;}
+.toolbar input[type=text]{height:32px;font-size:12px;width:220px;}
+.toolbar select{height:32px;font-size:12px;}
+
+/* FREQ LEGEND */
+.freq-legend{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px;}
+.freq-pill{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:99px;font-size:11px;background:var(--surface2);border:1px solid var(--border);color:var(--text2);}
+.freq-pill b{color:var(--text);font-weight:600;}
+
+/* STATUS DOT */
+.dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.dot.done{background:#10b981;}
+.dot.pending{background:#f59e0b;}
+.dot.overdue{background:#ef4444;}
+
+/* EMPTY + LOADING */
+.empty{text-align:center;padding:40px 20px;color:var(--text3);font-size:13px;}
+.loading-row td{text-align:center;padding:30px;color:var(--text3);font-size:13px;}
+
+/* TOAST */
+.toast{position:fixed;bottom:24px;right:24px;background:var(--text);color:#fff;padding:10px 18px;border-radius:8px;font-size:13px;z-index:999;opacity:0;transform:translateY(10px);transition:all 0.25s;pointer-events:none;}
+.toast.show{opacity:1;transform:translateY(0);}
+.toast.success{background:var(--accent);}
+.toast.error{background:var(--danger);}
+
+/* RESP */
+@media(max-width:600px){
+  .form-grid{grid-template-columns:1fr;}
+  .stat-grid{grid-template-columns:1fr 1fr;}
+  .nav-tab{padding:14px 12px;font-size:12px;}
+}
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="nav-logo">Doer<span>Desk</span></div>
+  <div class="nav-tabs">
+    <button class="nav-tab active" onclick="showPage('dashboard')">Dashboard</button>
+    <button class="nav-tab" onclick="showPage('tasks')">Task List</button>
+    <button class="nav-tab" onclick="showPage('doers')">Doer List</button>
+    <button class="nav-tab" onclick="showPage('add-doer')">Add Doer</button>
+    <button class="nav-tab" onclick="showPage('add-task')">Add Task</button>
+  </div>
+  <div class="nav-sync">
+    <div class="sync-status" id="sync-status">
+      <div class="sync-dot" id="sync-dot"></div>
+      <span id="sync-label">Connecting…</span>
+    </div>
+    <button class="btn btn-outline btn-sm" onclick="syncAll()" style="font-size:11px;">↻ Sync</button>
+  </div>
+</nav>
+
+<!-- DASHBOARD -->
+<div id="page-dashboard" class="page active">
+  <div style="margin-bottom:20px;">
+    <div style="font-size:20px;font-weight:600;margin-bottom:2px;">Good morning 👋</div>
+    <div style="color:var(--text2);font-size:13px;" id="dash-date"></div>
+  </div>
+  <div class="stat-grid" id="stat-grid"></div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+    <div class="card">
+      <div class="card-title">Today & Next 2 Days Follow-ups</div>
+      <div id="followup-list"><div class="empty">Loading…</div></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Overdue Tasks</div>
+      <div id="overdue-list"><div class="empty">Loading…</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- TASK LIST -->
+<div id="page-tasks" class="page">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+    <div style="font-size:18px;font-weight:600;">Task List</div>
+    <button class="btn btn-primary" onclick="showPage('add-task')">+ Add Task</button>
+  </div>
+  <div class="freq-legend">
+    <div class="freq-pill"><b>D</b> Daily</div>
+    <div class="freq-pill"><b>W</b> Weekly</div>
+    <div class="freq-pill"><b>M</b> Monthly</div>
+    <div class="freq-pill"><b>Q</b> Quarterly</div>
+    <div class="freq-pill"><b>Y</b> Yearly</div>
+    <div class="freq-pill"><b>HF</b> Half-Yearly</div>
+    <div class="freq-pill"><b>F</b> Fortnightly</div>
+  </div>
+  <div class="toolbar">
+    <input type="text" placeholder="Search tasks…" id="task-search" oninput="renderTasks()"/>
+    <select id="task-filter-freq" onchange="renderTasks()">
+      <option value="">All Frequencies</option>
+      <option>D</option><option>W</option><option>M</option>
+      <option>Q</option><option>Y</option><option>HF</option><option>F</option>
+    </select>
+    <select id="task-filter-status" onchange="renderTasks()">
+      <option value="">All Statuses</option>
+      <option>Pending</option><option>Done</option><option>Overdue</option>
+    </select>
+    <select id="task-filter-dept" onchange="renderTasks()">
+      <option value="">All Departments</option>
+    </select>
+  </div>
+  <div class="card" style="padding:0;">
+    <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr><th>Task</th><th>Doer</th><th>Dept</th><th>Frequency</th><th>Day/Date</th><th>Status</th><th>Actions</th></tr>
+        </thead>
+        <tbody id="task-tbody"><tr class="loading-row"><td colspan="7">Loading from Google Sheets…</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- DOER LIST -->
+<div id="page-doers" class="page">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+    <div style="font-size:18px;font-weight:600;">Doer List</div>
+    <button class="btn btn-primary" onclick="showPage('add-doer')">+ Add Doer</button>
+  </div>
+  <div class="toolbar">
+    <input type="text" placeholder="Search doers…" id="doer-search" oninput="renderDoers()"/>
+    <select id="doer-filter-dept" onchange="renderDoers()"><option value="">All Departments</option></select>
+  </div>
+  <div class="card" style="padding:0;">
+    <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr><th>Name</th><th>Department</th><th>Email</th><th>Phone</th><th>Tasks</th><th>Actions</th></tr>
+        </thead>
+        <tbody id="doer-tbody"><tr class="loading-row"><td colspan="6">Loading from Google Sheets…</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ADD DOER FORM -->
+<div id="page-add-doer" class="page">
+  <div style="max-width:560px;">
+    <div style="font-size:18px;font-weight:600;margin-bottom:20px;" id="doer-form-title">Add New Doer</div>
+    <div class="card">
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Full Name *</label>
+          <input type="text" id="f-name" placeholder="e.g. Rahul Sharma"/>
+        </div>
+        <div class="form-group">
+          <label>Department *</label>
+          <input type="text" id="f-dept" placeholder="e.g. Operations"/>
+        </div>
+        <div class="form-group">
+          <label>Email Address</label>
+          <input type="email" id="f-email" placeholder="rahul@company.com"/>
+        </div>
+        <div class="form-group">
+          <label>Phone Number</label>
+          <input type="tel" id="f-phone" placeholder="+91 98765 43210"/>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:20px;">
+        <button class="btn btn-primary" id="doer-save-btn" onclick="saveDoer()">Save Doer</button>
+        <button class="btn btn-outline" onclick="clearDoerForm()">Clear</button>
+      </div>
+      <div id="doer-msg" style="margin-top:10px;font-size:12px;"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ADD TASK FORM -->
+<div id="page-add-task" class="page">
+  <div style="max-width:560px;">
+    <div style="font-size:18px;font-weight:600;margin-bottom:20px;" id="task-form-title">Add New Task</div>
+    <div class="card">
+      <div class="form-grid">
+        <div class="form-group full">
+          <label>Task Description *</label>
+          <input type="text" id="t-task" placeholder="e.g. Submit monthly MIS report"/>
+        </div>
+        <div class="form-group">
+          <label>Doer Name *</label>
+          <select id="t-doer"><option value="">Select Doer</option></select>
+        </div>
+        <div class="form-group">
+          <label>Department</label>
+          <input type="text" id="t-dept" placeholder="Auto-filled" readonly style="background:var(--surface2);color:var(--text2);"/>
+        </div>
+        <div class="form-group">
+          <label>Frequency *</label>
+          <select id="t-freq" onchange="toggleDateField()">
+            <option value="">Select</option>
+            <option value="D">D — Daily</option>
+            <option value="W">W — Weekly</option>
+            <option value="F">F — Fortnightly</option>
+            <option value="M">M — Monthly</option>
+            <option value="Q">Q — Quarterly</option>
+            <option value="HF">HF — Half-Yearly</option>
+            <option value="Y">Y — Yearly</option>
+          </select>
+        </div>
+        <div class="form-group" id="date-field-wrap">
+          <label id="date-field-label">Day / Date *</label>
+          <input type="text" id="t-day" placeholder="e.g. Monday / 5 / 15th"/>
+        </div>
+        <div class="form-group">
+          <label>Status</label>
+          <select id="t-status">
+            <option value="Pending">Pending</option>
+            <option value="Done">Done</option>
+            <option value="Overdue">Overdue</option>
+          </select>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:20px;">
+        <button class="btn btn-primary" id="task-save-btn" onclick="saveTask()">Save Task</button>
+        <button class="btn btn-outline" onclick="clearTaskForm()">Clear</button>
+      </div>
+      <div id="task-msg" style="margin-top:10px;font-size:12px;"></div>
+    </div>
+  </div>
+</div>
+
+<!-- WHATSAPP MODAL -->
+<div class="modal-overlay" id="wa-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">📲 Send WhatsApp Reminder</div>
+      <button class="modal-close" onclick="closeWA()">✕</button>
+    </div>
+    <div>
+      <div style="font-size:12px;color:var(--text2);margin-bottom:10px;">Message preview — edit before sending:</div>
+      <textarea id="wa-msg-text" rows="6" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:6px;font-size:13px;line-height:1.6;resize:vertical;outline:none;font-family:var(--font);"></textarea>
+      <div style="font-size:11px;color:var(--text3);margin-top:6px;">Recipient phone: <span id="wa-phone" style="font-weight:500;"></span></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeWA()">Cancel</button>
+      <button class="btn btn-wa" onclick="openWhatsApp()">Open WhatsApp Web ↗</button>
+    </div>
+  </div>
+</div>
+
+<!-- EDIT TASK MODAL -->
+<div class="modal-overlay" id="edit-task-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Edit Task</div>
+      <button class="modal-close" onclick="closeEditTask()">✕</button>
+    </div>
+    <div class="form-grid">
+      <div class="form-group full"><label>Task</label><input type="text" id="et-task"/></div>
+      <div class="form-group"><label>Doer</label><select id="et-doer"></select></div>
+      <div class="form-group"><label>Frequency</label>
+        <select id="et-freq">
+          <option value="D">D — Daily</option><option value="W">W — Weekly</option>
+          <option value="F">F — Fortnightly</option><option value="M">M — Monthly</option>
+          <option value="Q">Q — Quarterly</option><option value="HF">HF — Half-Yearly</option>
+          <option value="Y">Y — Yearly</option>
+        </select>
+      </div>
+      <div class="form-group"><label>Day/Date</label><input type="text" id="et-day"/></div>
+      <div class="form-group"><label>Status</label>
+        <select id="et-status">
+          <option value="Pending">Pending</option><option value="Done">Done</option><option value="Overdue">Overdue</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeEditTask()">Cancel</button>
+      <button class="btn btn-primary" onclick="updateTask()">Save Changes</button>
+    </div>
+  </div>
+</div>
+
+<!-- EDIT DOER MODAL -->
+<div class="modal-overlay" id="edit-doer-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Edit Doer</div>
+      <button class="modal-close" onclick="closeEditDoer()">✕</button>
+    </div>
+    <div class="form-grid">
+      <div class="form-group"><label>Full Name *</label><input type="text" id="ed-name"/></div>
+      <div class="form-group"><label>Department *</label><input type="text" id="ed-dept"/></div>
+      <div class="form-group"><label>Email</label><input type="email" id="ed-email"/></div>
+      <div class="form-group"><label>Phone</label><input type="tel" id="ed-phone"/></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeEditDoer()">Cancel</button>
+      <button class="btn btn-primary" onclick="updateDoer()">Save Changes</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ═══════════════════════════════════════════════════════════
+// CONFIG — paste your Web App URL here after deploying
+// ═══════════════════════════════════════════════════════════
+const GAS_URL = 'YOUR_WEB_APP_URL_HERE';
+// Example: 'https://script.google.com/macros/s/AKfyc.../exec'
+
+// ── IN-MEMORY STORE ──────────────────────────────────────────
+let doers = [];
+let tasks = [];
+let editTaskId  = null;
+let editDoerId2 = null;
+let waPhone     = '';
+
+// ── FREQ HELPERS ─────────────────────────────────────────────
+const FREQ_LABEL = {D:'Daily',W:'Weekly',F:'Fortnightly',M:'Monthly',Q:'Quarterly',HF:'Half-Yearly',Y:'Yearly'};
+
+// ── SYNC STATUS ───────────────────────────────────────────────
+function setSyncStatus(state, label) {
+  const dot = document.getElementById('sync-dot');
+  const lbl = document.getElementById('sync-label');
+  dot.className = 'sync-dot ' + state;
+  lbl.textContent = label;
+}
+
+// ── API CALLS ─────────────────────────────────────────────────
+async function apiGet(action) {
+  const url = GAS_URL + '?action=' + action + '&t=' + Date.now();
+  const res = await fetch(url);
+  if (!res.ok) throw new Error('HTTP ' + res.status);
+  return res.json();
+}
+
+async function apiPost(action, data) {
+  const res = await fetch(GAS_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action, data })
+  });
+  if (!res.ok) throw new Error('HTTP ' + res.status);
+  return res.json();
+}
+
+// ── SYNC ALL DATA ─────────────────────────────────────────────
+async function syncAll() {
+  if (!GAS_URL || GAS_URL === 'YOUR_WEB_APP_URL_HERE') {
+    setSyncStatus('err', 'No URL set');
+    showToast('Please set GAS_URL in the script.', 'error');
+    return;
+  }
+  setSyncStatus('loading', 'Syncing…');
+  try {
+    const result = await apiGet('getAllData');
+    if (result.error) throw new Error(result.error);
+    doers = (result.doers || []).map(normalizeDoer);
+    tasks = (result.tasks || []).map(normalizeTask);
+    setSyncStatus('ok', 'Synced ' + new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'}));
+    // Refresh whichever page is active
+    const activePage = document.querySelector('.page.active')?.id?.replace('page-','');
+    if (activePage === 'dashboard') renderDashboard();
+    if (activePage === 'tasks')     renderTasks();
+    if (activePage === 'doers')     renderDoers();
+    if (activePage === 'add-task')  populateDoerSelect();
+  } catch (err) {
+    setSyncStatus('err', 'Sync failed');
+    showToast('Sync error: ' + err.message, 'error');
+  }
+}
+
+// normalize sheet row → JS object
+function normalizeDoer(row) {
+  return {
+    id:         row['ID']         || row['id']         || '',
+    name:       row['Name']       || row['name']       || '',
+    department: row['Department'] || row['department'] || '',
+    email:      row['Email']      || row['email']      || '',
+    phone:      row['Phone']      || row['phone']      || ''
+  };
+}
+function normalizeTask(row) {
+  return {
+    id:         row['ID']         || row['id']         || '',
+    task:       row['Task']       || row['task']       || '',
+    doerName:   row['Doer Name']  || row['doerName']   || '',
+    department: row['Department'] || row['department'] || '',
+    frequency:  row['Frequency']  || row['frequency']  || '',
+    daydate:    row['Day/Date']   || row['daydate']    || '',
+    status:     row['Status']     || row['status']     || 'Pending'
+  };
+}
+
+// ── NAV ───────────────────────────────────────────────────────
+function showPage(id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('page-' + id).classList.add('active');
+  const tabs = {dashboard:0, tasks:1, doers:2, 'add-doer':3, 'add-task':4};
+  document.querySelectorAll('.nav-tab')[tabs[id]]?.classList.add('active');
+  if (id === 'dashboard') renderDashboard();
+  if (id === 'tasks')     { populateDeptFilter(); renderTasks(); }
+  if (id === 'doers')     { populateDoerDeptFilter(); renderDoers(); }
+  if (id === 'add-task')  populateDoerSelect();
+  if (id === 'add-doer')  {
+    document.getElementById('doer-form-title').textContent = 'Add New Doer';
+    document.getElementById('doer-save-btn').textContent = 'Save Doer';
+  }
+}
+
+// ── FREQUENCY / DUE DATE ──────────────────────────────────────
+function getNextDueDate(task) {
+  const today = new Date(); today.setHours(0,0,0,0);
+  const f = task.frequency;
+  const dayStr = (task.daydate || '').trim().toLowerCase();
+  if (f === 'D') return today;
+  if (f === 'W') {
+    const days = ['sunday','monday','tuesday','wednesday','thursday','friday','saturday'];
+    const idx  = days.findIndex(d => d.startsWith(dayStr.slice(0,3)));
+    if (idx >= 0) {
+      const d = new Date(today);
+      const diff = (idx - d.getDay() + 7) % 7;
+      d.setDate(d.getDate() + (diff === 0 ? 0 : diff));
+      return d;
+    }
+    return today;
+  }
+  if (['M','Q','HF','Y','F'].includes(f)) {
+    const dayNum = parseInt(dayStr);
+    if (!isNaN(dayNum)) {
+      const d = new Date(today.getFullYear(), today.getMonth(), dayNum);
+      if (d < today) d.setMonth(d.getMonth() + 1);
+      return d;
+    }
+    const parsed = new Date(dayStr);
+    if (!isNaN(parsed)) return parsed;
+  }
+  return today;
+}
+
+function diffDays(d1, d2) { return Math.round((d1 - d2) / 864e5); }
+function fmtDate(d) { return d.toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'}); }
+function taskStatus(task) {
+  if (task.status === 'Done') return 'Done';
+  const today = new Date(); today.setHours(0,0,0,0);
+  const due   = getNextDueDate(task);
+  return diffDays(due, today) < 0 ? 'Overdue' : 'Pending';
+}
+
+// ── DASHBOARD ─────────────────────────────────────────────────
+function renderDashboard() {
+  const today = new Date(); today.setHours(0,0,0,0);
+  const d1 = new Date(today); d1.setDate(d1.getDate()+1);
+  const d2 = new Date(today); d2.setDate(d2.getDate()+2);
+
+  document.getElementById('dash-date').textContent =
+    today.toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+
+  const total    = tasks.length;
+  const done     = tasks.filter(t => t.status === 'Done').length;
+  const overdue  = tasks.filter(t => taskStatus(t) === 'Overdue').length;
+  const todayT   = tasks.filter(t => t.status !== 'Done' && diffDays(getNextDueDate(t), today) === 0).length;
+
+  document.getElementById('stat-grid').innerHTML = `
+    <div class="stat"><div class="stat-val">${total}</div><div class="stat-lbl">Total Tasks</div></div>
+    <div class="stat good"><div class="stat-val">${done}</div><div class="stat-lbl">Completed</div></div>
+    <div class="stat warn"><div class="stat-val">${todayT}</div><div class="stat-lbl">Due Today</div></div>
+    <div class="stat danger"><div class="stat-val">${overdue}</div><div class="stat-lbl">Overdue</div></div>
+    <div class="stat"><div class="stat-val">${doers.length}</div><div class="stat-lbl">Doers</div></div>
+  `;
+
+  const sections = [
+    {label:'Today',           badge:'today-mark', date:today, diff:0},
+    {label:'Tomorrow',        badge:'tmrw',       date:d1,    diff:1},
+    {label:'Day After Tomorrow', badge:'d2',      date:d2,    diff:2},
+  ];
+  let fuHtml = '';
+  sections.forEach(sec => {
+    const list = tasks.filter(t => t.status !== 'Done' && diffDays(getNextDueDate(t), today) === sec.diff);
+    if (!list.length) return;
+    fuHtml += `<div class="day-section"><div class="day-label"><span>${sec.label}</span>
+      <span class="day-badge ${sec.badge}">${fmtDate(sec.date)}</span>
+      <span class="day-badge" style="background:var(--surface2);color:var(--text2);">${list.length}</span></div>`;
+    list.forEach(t => {
+      const doer = doers.find(d => d.name === t.doerName) || {};
+      fuHtml += `<div class="followup-row">
+        <div class="dot pending"></div>
+        <div class="followup-info">
+          <div class="followup-name">${escHtml2(t.task)}</div>
+          <div class="followup-task">${escHtml2(t.doerName)} · ${escHtml2(t.department)} · <span class="badge freq">${t.frequency}</span></div>
+        </div>
+        <div class="followup-right">
+          ${doer.phone ? `<button class="btn btn-wa btn-sm" onclick="openWA('${esc(t.task)}','${esc(t.doerName)}','${esc(doer.phone)}','${t.frequency}')">WA</button>` : ''}
+        </div>
+      </div>`;
+    });
+    fuHtml += '</div>';
+  });
+  document.getElementById('followup-list').innerHTML = fuHtml || '<div class="empty">No follow-ups for next 2 days 🎉</div>';
+
+  const overdueList = tasks.filter(t => taskStatus(t) === 'Overdue');
+  let odHtml = '';
+  overdueList.forEach(t => {
+    const doer = doers.find(d => d.name === t.doerName) || {};
+    const due  = getNextDueDate(t);
+    const late = Math.abs(diffDays(due, today));
+    odHtml += `<div class="followup-row">
+      <div class="dot overdue"></div>
+      <div class="followup-info">
+        <div class="followup-name">${escHtml2(t.task)}</div>
+        <div class="followup-task">${escHtml2(t.doerName)} · ${late}d overdue · <span class="badge freq">${t.frequency}</span></div>
+      </div>
+      <div class="followup-right">
+        ${doer.phone ? `<button class="btn btn-wa btn-sm" onclick="openWA('${esc(t.task)}','${esc(t.doerName)}','${esc(doer.phone)}','${t.frequency}')">WA</button>` : ''}
+      </div>
+    </div>`;
+  });
+  document.getElementById('overdue-list').innerHTML = odHtml || '<div class="empty">No overdue tasks ✅</div>';
+}
+
+// ── TASK TABLE ────────────────────────────────────────────────
+function renderTasks() {
+  populateDeptFilter();
+  const search = (document.getElementById('task-search')?.value || '').toLowerCase();
+  const freqF  = document.getElementById('task-filter-freq')?.value || '';
+  const statF  = document.getElementById('task-filter-status')?.value || '';
+  const deptF  = document.getElementById('task-filter-dept')?.value || '';
+
+  const list = tasks.filter(t => {
+    const s = taskStatus(t);
+    return (!search || (t.task+t.doerName+t.department).toLowerCase().includes(search))
+      && (!freqF || t.frequency === freqF)
+      && (!statF || s === statF)
+      && (!deptF || t.department === deptF);
+  });
+
+  const tbody = document.getElementById('task-tbody');
+  if (!list.length) { tbody.innerHTML = `<tr><td colspan="7"><div class="empty">No tasks found</div></td></tr>`; return; }
+  tbody.innerHTML = list.map(t => {
+    const s    = taskStatus(t);
+    const doer = doers.find(d => d.name === t.doerName) || {};
+    return `<tr>
+      <td style="max-width:200px;font-weight:500;">${escHtml2(t.task)}</td>
+      <td>${escHtml2(t.doerName)}</td>
+      <td><span style="font-size:11px;color:var(--text2);">${escHtml2(t.department)||'—'}</span></td>
+      <td><span class="badge freq">${t.frequency}</span> <span style="font-size:11px;color:var(--text3);">${FREQ_LABEL[t.frequency]||''}</span></td>
+      <td style="font-size:12px;">${escHtml2(t.daydate)||'—'}</td>
+      <td><span class="badge ${s.toLowerCase()}">${s}</span></td>
+      <td>
+        <div style="display:flex;gap:4px;">
+          <button class="btn btn-outline btn-sm" onclick="editTaskModal('${t.id}')">Edit</button>
+          <button class="btn btn-sm" style="background:var(--danger-light);color:var(--danger);border:1px solid #fca5a5;" onclick="deleteTask('${t.id}')">Del</button>
+          ${doer.phone ? `<button class="btn btn-wa btn-sm" onclick="openWA('${esc(t.task)}','${esc(t.doerName)}','${esc(doer.phone)}','${t.frequency}')">WA</button>` : ''}
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function populateDeptFilter() {
+  const depts = [...new Set(tasks.map(t => t.department).filter(Boolean))];
+  const sel   = document.getElementById('task-filter-dept');
+  if (!sel) return;
+  const cur = sel.value;
+  sel.innerHTML = '<option value="">All Departments</option>' + depts.map(d => `<option ${d===cur?'selected':''}>${d}</option>`).join('');
+}
+
+// ── DOER TABLE ────────────────────────────────────────────────
+function renderDoers() {
+  populateDoerDeptFilter();
+  const search = (document.getElementById('doer-search')?.value || '').toLowerCase();
+  const deptF  = document.getElementById('doer-filter-dept')?.value || '';
+  const list   = doers.filter(d =>
+    (!search || (d.name+d.department+d.email+d.phone).toLowerCase().includes(search))
+    && (!deptF || d.department === deptF)
+  );
+  const tbody = document.getElementById('doer-tbody');
+  if (!list.length) { tbody.innerHTML = `<tr><td colspan="6"><div class="empty">No doers found.</div></td></tr>`; return; }
+  tbody.innerHTML = list.map(d => {
+    const tc = tasks.filter(t => t.doerName === d.name).length;
+    return `<tr>
+      <td style="font-weight:500;">${escHtml2(d.name)}</td>
+      <td>${escHtml2(d.department)}</td>
+      <td style="font-size:12px;color:var(--info);">${escHtml2(d.email)||'—'}</td>
+      <td style="font-size:12px;">${escHtml2(d.phone)||'—'}</td>
+      <td><span class="badge freq">${tc} task${tc!==1?'s':''}</span></td>
+      <td>
+        <div style="display:flex;gap:4px;">
+          <button class="btn btn-outline btn-sm" onclick="editDoerModal('${d.id}')">Edit</button>
+          <button class="btn btn-sm" style="background:var(--danger-light);color:var(--danger);border:1px solid #fca5a5;" onclick="deleteDoer('${d.id}')">Del</button>
+          ${d.phone ? `<button class="btn btn-wa btn-sm" onclick="openWADoer('${esc(d.name)}','${esc(d.phone)}')">WA</button>` : ''}
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function populateDoerDeptFilter() {
+  const depts = [...new Set(doers.map(d => d.department).filter(Boolean))];
+  const sel   = document.getElementById('doer-filter-dept');
+  if (!sel) return;
+  const cur = sel.value;
+  sel.innerHTML = '<option value="">All Departments</option>' + depts.map(d => `<option ${d===cur?'selected':''}>${d}</option>`).join('');
+}
+
+// ── DOER FORM (ADD) ───────────────────────────────────────────
+async function saveDoer() {
+  const name = document.getElementById('f-name').value.trim();
+  const dept = document.getElementById('f-dept').value.trim();
+  if (!name || !dept) { showToast('Please fill Name and Department.', 'error'); return; }
+
+  setBtnLoading('doer-save-btn', true);
+  const data = {
+    id:    Date.now() + '_' + Math.random().toString(36).slice(2),
+    name,
+    department: dept,
+    email: document.getElementById('f-email').value.trim(),
+    phone: document.getElementById('f-phone').value.trim()
+  };
+  try {
+    const res = await apiPost('addDoer', data);
+    if (!res.success) throw new Error(res.error || 'Failed');
+    doers.push(data);
+    showToast('Doer saved to Google Sheets ✓', 'success');
+    clearDoerForm();
+  } catch (err) {
+    showToast('Error: ' + err.message, 'error');
+  }
+  setBtnLoading('doer-save-btn', false);
+}
+
+function clearDoerForm() {
+  ['f-name','f-dept','f-email','f-phone'].forEach(id => document.getElementById(id).value = '');
+}
+
+// ── EDIT DOER MODAL ───────────────────────────────────────────
+function editDoerModal(id) {
+  const d = doers.find(x => String(x.id) === String(id));
+  if (!d) return;
+  editDoerId2 = id;
+  document.getElementById('ed-name').value  = d.name;
+  document.getElementById('ed-dept').value  = d.department;
+  document.getElementById('ed-email').value = d.email || '';
+  document.getElementById('ed-phone').value = d.phone || '';
+  document.getElementById('edit-doer-modal').classList.add('open');
+}
+function closeEditDoer() { document.getElementById('edit-doer-modal').classList.remove('open'); }
+
+async function updateDoer() {
+  const d = doers.find(x => String(x.id) === String(editDoerId2));
+  if (!d) return;
+  const data = {
+    id:         d.id,
+    name:       document.getElementById('ed-name').value.trim(),
+    department: document.getElementById('ed-dept').value.trim(),
+    email:      document.getElementById('ed-email').value.trim(),
+    phone:      document.getElementById('ed-phone').value.trim()
+  };
+  try {
+    const res = await apiPost('updateDoer', data);
+    if (!res.success) throw new Error(res.error || 'Failed');
+    Object.assign(d, data);
+    showToast('Doer updated ✓', 'success');
+    closeEditDoer();
+    renderDoers();
+  } catch (err) {
+    showToast('Error: ' + err.message, 'error');
+  }
+}
+
+async function deleteDoer(id) {
+  if (!confirm('Delete this doer?')) return;
+  try {
+    const res = await apiPost('deleteDoer', { id });
+    if (!res.success) throw new Error(res.error || 'Failed');
+    doers = doers.filter(d => String(d.id) !== String(id));
+    showToast('Doer deleted.', 'success');
+    renderDoers();
+  } catch (err) {
+    showToast('Error: ' + err.message, 'error');
+  }
+}
+
+// ── TASK FORM (ADD) ───────────────────────────────────────────
+function populateDoerSelect() {
+  const sel = document.getElementById('t-doer');
+  sel.innerHTML = '<option value="">Select Doer</option>' +
+    doers.map(d => `<option value="${escHtml2(d.name)}">${escHtml2(d.name)} (${escHtml2(d.department)})</option>`).join('');
+  sel.onchange = () => {
+    const d = doers.find(x => x.name === sel.value);
+    document.getElementById('t-dept').value = d ? d.department : '';
+  };
+}
+
+function toggleDateField() {
+  const f   = document.getElementById('t-freq').value;
+  const lbl = document.getElementById('date-field-label');
+  const map = {D:'—',W:'Day (e.g. Monday)',F:'Date (e.g. 1st, 15th)',M:'Date (e.g. 5)',Q:'Date (e.g. 15)',HF:'Date (e.g. 1)',Y:'Date (e.g. Jan 1)'};
+  lbl.textContent = map[f] || 'Day / Date';
+}
+
+async function saveTask() {
+  const task     = document.getElementById('t-task').value.trim();
+  const doerName = document.getElementById('t-doer').value;
+  const dept     = document.getElementById('t-dept').value;
+  const freq     = document.getElementById('t-freq').value;
+  const day      = document.getElementById('t-day').value.trim();
+  const status   = document.getElementById('t-status').value;
+  if (!task || !doerName || !freq) { showToast('Please fill Task, Doer, and Frequency.', 'error'); return; }
+
+  setBtnLoading('task-save-btn', true);
+  const data = {
+    id:         Date.now() + '_' + Math.random().toString(36).slice(2),
+    task, doerName,
+    department: dept,
+    frequency:  freq,
+    daydate:    day,
+    status
+  };
+  try {
+    const res = await apiPost('addTask', data);
+    if (!res.success) throw new Error(res.error || 'Failed');
+    tasks.push(data);
+    showToast('Task saved to Google Sheets ✓', 'success');
+    clearTaskForm();
+  } catch (err) {
+    showToast('Error: ' + err.message, 'error');
+  }
+  setBtnLoading('task-save-btn', false);
+}
+
+function clearTaskForm() {
+  ['t-task','t-day'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('t-doer').value   = '';
+  document.getElementById('t-dept').value   = '';
+  document.getElementById('t-freq').value   = '';
+  document.getElementById('t-status').value = 'Pending';
+}
+
+async function deleteTask(id) {
+  if (!confirm('Delete this task?')) return;
+  try {
+    const res = await apiPost('deleteTask', { id });
+    if (!res.success) throw new Error(res.error || 'Failed');
+    tasks = tasks.filter(t => String(t.id) !== String(id));
+    showToast('Task deleted.', 'success');
+    renderTasks();
+  } catch (err) {
+    showToast('Error: ' + err.message, 'error');
+  }
+}
+
+// ── EDIT TASK MODAL ───────────────────────────────────────────
+function editTaskModal(id) {
+  const t = tasks.find(x => String(x.id) === String(id));
+  if (!t) return;
+  editTaskId = id;
+  document.getElementById('et-task').value   = t.task;
+  document.getElementById('et-freq').value   = t.frequency;
+  document.getElementById('et-day').value    = t.daydate || '';
+  document.getElementById('et-status').value = t.status;
+  const sel = document.getElementById('et-doer');
+  sel.innerHTML = doers.map(d => `<option value="${escHtml2(d.name)}" ${d.name===t.doerName?'selected':''}>${escHtml2(d.name)}</option>`).join('');
+  document.getElementById('edit-task-modal').classList.add('open');
+}
+function closeEditTask() { document.getElementById('edit-task-modal').classList.remove('open'); }
+
+async function updateTask() {
+  const t = tasks.find(x => String(x.id) === String(editTaskId));
+  if (!t) return;
+  const doer = doers.find(d => d.name === document.getElementById('et-doer').value) || {};
+  const data = {
+    id:         t.id,
+    task:       document.getElementById('et-task').value.trim(),
+    doerName:   document.getElementById('et-doer').value,
+    department: doer.department || '',
+    frequency:  document.getElementById('et-freq').value,
+    daydate:    document.getElementById('et-day').value.trim(),
+    status:     document.getElementById('et-status').value
+  };
+  try {
+    const res = await apiPost('updateTask', data);
+    if (!res.success) throw new Error(res.error || 'Failed');
+    Object.assign(t, data);
+    showToast('Task updated ✓', 'success');
+    closeEditTask();
+    renderTasks();
+  } catch (err) {
+    showToast('Error: ' + err.message, 'error');
+  }
+}
+
+// ── WHATSAPP ──────────────────────────────────────────────────
+function openWA(task, doerName, phone, freq) {
+  waPhone = phone.replace(/\D/g,'');
+  const today = new Date().toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'});
+  const msg = `Hello ${doerName},\n\nThis is a gentle reminder for the following task:\n\n📋 *Task:* ${task}\n📅 *Frequency:* ${FREQ_LABEL[freq]||freq}\n🗓 *Date:* ${today}\n\nKindly ensure this is completed on time.\n\nThank you!`;
+  document.getElementById('wa-msg-text').value = msg;
+  document.getElementById('wa-phone').textContent = phone;
+  document.getElementById('wa-modal').classList.add('open');
+}
+function openWADoer(name, phone) {
+  waPhone = phone.replace(/\D/g,'');
+  document.getElementById('wa-msg-text').value = `Hello ${name},\n\nThis is a reminder from DoerDesk.\n\nPlease check your pending tasks for today.\n\nThank you!`;
+  document.getElementById('wa-phone').textContent = phone;
+  document.getElementById('wa-modal').classList.add('open');
+}
+function closeWA() { document.getElementById('wa-modal').classList.remove('open'); }
+function openWhatsApp() {
+  const msg = encodeURIComponent(document.getElementById('wa-msg-text').value);
+  window.open(`https://web.whatsapp.com/send?phone=${waPhone}&text=${msg}`, '_blank');
+}
+
+// ── UTILS ─────────────────────────────────────────────────────
+function escHtml2(s) {
+  return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function esc(s) { return String(s || '').replace(/'/g,"\\'").replace(/"/g,'&quot;'); }
+
+let toastTimer;
+function showToast(msg, type='') {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className   = 'toast show ' + type;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.className = 'toast', 3000);
+}
+
+function setBtnLoading(id, loading) {
+  const btn = document.getElementById(id);
+  if (!btn) return;
+  btn.disabled   = loading;
+  btn.textContent = loading ? 'Saving…' : (id.includes('doer') ? 'Save Doer' : 'Save Task');
+}
+
+// ── INIT ──────────────────────────────────────────────────────
+renderDashboard(); // renders empty stats while loading
+syncAll();         // pulls data from Google Sheets
+</script>
+</body>
+</html>
