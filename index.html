@@ -1,0 +1,1056 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>DoerDesk — Task Checklist System</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+:root {
+  --bg:           #f4f3ef;
+  --surface:      #ffffff;
+  --surface2:     #f9f8f5;
+  --border:       #e2e0d8;
+  --text:         #1a1916;
+  --text2:        #6b6860;
+  --text3:        #a8a69f;
+  --accent:       #2d6a4f;
+  --accent-light: #d8ede4;
+  --warn:         #b45309;
+  --warn-light:   #fef3c7;
+  --danger:       #991b1b;
+  --danger-light: #fee2e2;
+  --info:         #1e40af;
+  --info-light:   #dbeafe;
+  --wa:           #25D366;
+  --radius:       10px;
+  --font:         'DM Sans', sans-serif;
+  --mono:         'DM Mono', monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:14px;line-height:1.5;}
+button{font-family:var(--font);cursor:pointer;}
+input,select,textarea{font-family:var(--font);}
+
+/* NAV */
+.nav{background:var(--surface);border-bottom:1px solid var(--border);padding:0 24px;display:flex;align-items:center;gap:0;position:sticky;top:0;z-index:100;box-shadow:0 1px 4px rgba(0,0,0,0.04);}
+.nav-logo{font-size:15px;font-weight:600;color:var(--text);padding:16px 0;margin-right:32px;letter-spacing:-0.3px;}
+.nav-logo span{color:var(--accent);}
+.nav-tabs{display:flex;gap:0;}
+.nav-tab{padding:16px 18px;font-size:13px;font-weight:500;color:var(--text2);border:none;background:none;border-bottom:2px solid transparent;cursor:pointer;transition:all 0.15s;white-space:nowrap;}
+.nav-tab:hover{color:var(--text);}
+.nav-tab.active{color:var(--accent);border-bottom-color:var(--accent);}
+.nav-right{margin-left:auto;display:flex;align-items:center;gap:8px;}
+.sync-btn{height:32px;padding:0 12px;background:var(--accent-light);color:var(--accent);border:1px solid #b7dccb;border-radius:6px;font-size:12px;font-weight:600;display:flex;align-items:center;gap:5px;}
+.sync-btn:hover{background:#c4e8d6;}
+.sync-btn.syncing{opacity:0.7;pointer-events:none;}
+
+/* LAYOUT */
+.page{display:none;padding:24px;max-width:1200px;margin:0 auto;}
+.page.active{display:block;}
+
+/* LOADING SCREEN */
+#loading-screen{position:fixed;inset:0;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:999;gap:14px;}
+#loading-screen.hidden{display:none;}
+.spinner{width:36px;height:36px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin 0.7s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.loading-text{font-size:13px;color:var(--text2);}
+
+/* TOAST */
+#toast{position:fixed;bottom:24px;right:24px;z-index:500;display:flex;flex-direction:column;gap:8px;}
+.toast-item{padding:10px 16px;border-radius:8px;font-size:13px;font-weight:500;box-shadow:0 4px 16px rgba(0,0,0,0.12);animation:slideIn 0.2s ease;display:flex;align-items:center;gap:8px;}
+.toast-item.success{background:#065f46;color:#fff;}
+.toast-item.error{background:var(--danger);color:#fff;}
+.toast-item.info{background:var(--info);color:#fff;}
+@keyframes slideIn{from{transform:translateX(40px);opacity:0;}to{transform:translateX(0);opacity:1;}}
+
+/* CARDS */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px;}
+.card-title{font-size:13px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:16px;}
+
+/* STAT GRID */
+.stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:20px;}
+.stat{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px;}
+.stat-val{font-size:28px;font-weight:600;color:var(--text);line-height:1;margin-bottom:4px;font-variant-numeric:tabular-nums;}
+.stat-lbl{font-size:12px;color:var(--text2);}
+.stat.danger .stat-val{color:var(--danger);}
+.stat.warn .stat-val{color:var(--warn);}
+.stat.good .stat-val{color:var(--accent);}
+
+/* BADGE */
+.badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:99px;font-size:11px;font-weight:500;white-space:nowrap;}
+.badge.done{background:#d1fae5;color:#065f46;}
+.badge.pending{background:var(--warn-light);color:var(--warn);}
+.badge.overdue{background:var(--danger-light);color:var(--danger);}
+.badge.today{background:var(--info-light);color:var(--info);}
+.badge.freq{background:var(--surface2);color:var(--text2);border:1px solid var(--border);}
+
+/* TABLE */
+.tbl-wrap{overflow-x:auto;}
+table{width:100%;border-collapse:collapse;font-size:13px;}
+thead th{padding:8px 12px;text-align:left;font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:0.05em;border-bottom:1px solid var(--border);background:var(--surface2);}
+tbody tr{border-bottom:1px solid var(--border);transition:background 0.1s;}
+tbody tr:last-child{border-bottom:none;}
+tbody tr:hover{background:var(--surface2);}
+tbody td{padding:10px 12px;vertical-align:middle;}
+
+/* FORMS */
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+.form-group{display:flex;flex-direction:column;gap:5px;}
+.form-group.full{grid-column:1/-1;}
+label{font-size:12px;font-weight:500;color:var(--text2);}
+input[type=text],input[type=email],input[type=tel],select{height:36px;padding:0 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;color:var(--text);background:var(--surface);outline:none;transition:border-color 0.15s;}
+input[type=text]:focus,input[type=email]:focus,input[type=tel]:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(45,106,79,0.1);}
+input[readonly]{background:var(--surface2);color:var(--text2);}
+
+/* BUTTONS */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:0 16px;height:36px;border-radius:6px;font-size:13px;font-weight:500;border:none;transition:all 0.15s;}
+.btn:disabled{opacity:0.6;pointer-events:none;}
+.btn-primary{background:var(--accent);color:#fff;}
+.btn-primary:hover{background:#1f4d39;}
+.btn-outline{background:transparent;border:1px solid var(--border);color:var(--text2);}
+.btn-outline:hover{border-color:var(--text2);color:var(--text);}
+.btn-wa{background:var(--wa);color:#fff;font-weight:600;}
+.btn-wa:hover{background:#1da851;}
+.btn-danger{background:var(--danger-light);color:var(--danger);border:1px solid #fca5a5;}
+.btn-danger:hover{background:#fca5a5;}
+.btn-sm{height:28px;padding:0 10px;font-size:12px;}
+
+/* MODAL */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.35);z-index:200;align-items:center;justify-content:center;}
+.modal-overlay.open{display:flex;}
+.modal{background:var(--surface);border-radius:14px;padding:24px;width:100%;max-width:520px;box-shadow:0 20px 60px rgba(0,0,0,0.15);}
+.modal-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;}
+.modal-title{font-size:15px;font-weight:600;}
+.modal-close{background:none;border:none;font-size:18px;color:var(--text2);cursor:pointer;line-height:1;padding:4px;}
+.modal-footer{display:flex;justify-content:flex-end;gap:8px;margin-top:20px;}
+
+/* DASHBOARD */
+.followup-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);}
+.followup-row:last-child{border-bottom:none;}
+.followup-info{flex:1;}
+.followup-name{font-size:13px;font-weight:500;}
+.followup-task{font-size:12px;color:var(--text2);}
+.followup-right{display:flex;align-items:center;gap:8px;}
+.day-section{margin-bottom:20px;}
+.day-label{font-size:12px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:10px;display:flex;align-items:center;gap:8px;}
+.day-badge{background:var(--text);color:#fff;padding:2px 8px;border-radius:99px;font-size:10px;}
+.day-badge.today-mark{background:var(--accent);}
+.day-badge.tmrw{background:var(--warn);}
+.day-badge.d2{background:var(--info);}
+
+/* SEARCH + FILTER */
+.toolbar{display:flex;gap:8px;align-items:center;margin-bottom:16px;flex-wrap:wrap;}
+.toolbar input[type=text]{height:32px;font-size:12px;width:220px;}
+.toolbar select{height:32px;font-size:12px;}
+
+/* FREQ LEGEND */
+.freq-legend{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px;}
+.freq-pill{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:99px;font-size:11px;background:var(--surface2);border:1px solid var(--border);color:var(--text2);}
+.freq-pill b{color:var(--text);font-weight:600;}
+
+/* STATUS DOT */
+.dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.dot.done{background:#10b981;}
+.dot.pending{background:#f59e0b;}
+.dot.overdue{background:#ef4444;}
+
+/* EMPTY */
+.empty{text-align:center;padding:40px 20px;color:var(--text3);font-size:13px;}
+
+/* RESPONSIVE */
+@media(max-width:600px){
+  .form-grid{grid-template-columns:1fr;}
+  .stat-grid{grid-template-columns:1fr 1fr;}
+  .nav-tab{padding:14px 10px;font-size:11px;}
+  .page{padding:16px;}
+  #dash-grid{grid-template-columns:1fr!important;}
+}
+</style>
+</head>
+<body>
+
+<!-- LOADING SCREEN -->
+<div id="loading-screen">
+  <div class="spinner"></div>
+  <div class="loading-text">Connecting to Google Sheets…</div>
+</div>
+
+<!-- TOAST CONTAINER -->
+<div id="toast"></div>
+
+<!-- NAV -->
+<nav class="nav">
+  <div class="nav-logo">Doer<span>Desk</span></div>
+  <div class="nav-tabs">
+    <button class="nav-tab active" onclick="showPage('dashboard')">Dashboard</button>
+    <button class="nav-tab" onclick="showPage('tasks')">Task List</button>
+    <button class="nav-tab" onclick="showPage('doers')">Doer List</button>
+    <button class="nav-tab" onclick="showPage('add-doer')">Add Doer</button>
+    <button class="nav-tab" onclick="showPage('add-task')">Add Task</button>
+  </div>
+  <div class="nav-right">
+    <button class="sync-btn" onclick="syncAll()" id="sync-btn" title="Refresh from Google Sheets">
+      ↻ Sync
+    </button>
+  </div>
+</nav>
+
+<!-- ══════════════════════════════════════════════════════ -->
+<!--  DASHBOARD                                            -->
+<!-- ══════════════════════════════════════════════════════ -->
+<div id="page-dashboard" class="page active">
+  <div style="margin-bottom:20px;">
+    <div style="font-size:20px;font-weight:600;margin-bottom:2px;">Good morning 👋</div>
+    <div style="color:var(--text2);font-size:13px;" id="dash-date"></div>
+  </div>
+  <div class="stat-grid" id="stat-grid"></div>
+  <div id="dash-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+    <div class="card">
+      <div class="card-title">Today &amp; Next 2 Days Follow-ups</div>
+      <div id="followup-list"></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Overdue Tasks</div>
+      <div id="overdue-list"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════ -->
+<!--  TASK LIST                                            -->
+<!-- ══════════════════════════════════════════════════════ -->
+<div id="page-tasks" class="page">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+    <div style="font-size:18px;font-weight:600;">Task List</div>
+    <button class="btn btn-primary" onclick="showPage('add-task')">+ Add Task</button>
+  </div>
+  <div class="freq-legend">
+    <div class="freq-pill"><b>D</b> Daily</div>
+    <div class="freq-pill"><b>W</b> Weekly</div>
+    <div class="freq-pill"><b>F</b> Fortnightly</div>
+    <div class="freq-pill"><b>M</b> Monthly</div>
+    <div class="freq-pill"><b>Q</b> Quarterly</div>
+    <div class="freq-pill"><b>HF</b> Half-Yearly</div>
+    <div class="freq-pill"><b>Y</b> Yearly</div>
+  </div>
+  <div class="toolbar">
+    <input type="text" placeholder="Search tasks…" id="task-search" oninput="renderTasks()"/>
+    <select id="task-filter-freq" onchange="renderTasks()">
+      <option value="">All Frequencies</option>
+      <option>D</option><option>W</option><option>F</option>
+      <option>M</option><option>Q</option><option>HF</option><option>Y</option>
+    </select>
+    <select id="task-filter-status" onchange="renderTasks()">
+      <option value="">All Statuses</option>
+      <option>Pending</option><option>Done</option><option>Overdue</option>
+    </select>
+    <select id="task-filter-dept" onchange="renderTasks()">
+      <option value="">All Departments</option>
+    </select>
+  </div>
+  <div class="card" style="padding:0;">
+    <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Task</th><th>Doer</th><th>Dept</th><th>Frequency</th>
+            <th>Day/Date</th><th>Status</th><th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="task-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════ -->
+<!--  DOER LIST                                            -->
+<!-- ══════════════════════════════════════════════════════ -->
+<div id="page-doers" class="page">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+    <div style="font-size:18px;font-weight:600;">Doer List</div>
+    <button class="btn btn-primary" onclick="showPage('add-doer')">+ Add Doer</button>
+  </div>
+  <div class="toolbar">
+    <input type="text" placeholder="Search doers…" id="doer-search" oninput="renderDoers()"/>
+    <select id="doer-filter-dept" onchange="renderDoers()">
+      <option value="">All Departments</option>
+    </select>
+  </div>
+  <div class="card" style="padding:0;">
+    <div class="tbl-wrap">
+      <table>
+        <thead>
+          <tr><th>Name</th><th>Department</th><th>Email</th><th>Phone</th><th>Tasks</th><th>Actions</th></tr>
+        </thead>
+        <tbody id="doer-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════ -->
+<!--  ADD DOER                                             -->
+<!-- ══════════════════════════════════════════════════════ -->
+<div id="page-add-doer" class="page">
+  <div style="max-width:560px;">
+    <div style="font-size:18px;font-weight:600;margin-bottom:20px;" id="doer-form-title">Add New Doer</div>
+    <div class="card">
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Full Name *</label>
+          <input type="text" id="f-name" placeholder="e.g. Rahul Sharma"/>
+        </div>
+        <div class="form-group">
+          <label>Department *</label>
+          <input type="text" id="f-dept" placeholder="e.g. Operations"/>
+        </div>
+        <div class="form-group">
+          <label>Email Address</label>
+          <input type="email" id="f-email" placeholder="rahul@company.com"/>
+        </div>
+        <div class="form-group">
+          <label>Phone Number</label>
+          <input type="tel" id="f-phone" placeholder="+91 98765 43210"/>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:20px;">
+        <button class="btn btn-primary" id="doer-save-btn" onclick="saveDoer()">Save Doer</button>
+        <button class="btn btn-outline" onclick="cancelDoerEdit()">Cancel / Clear</button>
+      </div>
+      <div id="doer-msg" style="margin-top:10px;font-size:12px;"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════ -->
+<!--  ADD TASK                                             -->
+<!-- ══════════════════════════════════════════════════════ -->
+<div id="page-add-task" class="page">
+  <div style="max-width:560px;">
+    <div style="font-size:18px;font-weight:600;margin-bottom:20px;" id="task-form-title">Add New Task</div>
+    <div class="card">
+      <div class="form-grid">
+        <div class="form-group full">
+          <label>Task Description *</label>
+          <input type="text" id="t-task" placeholder="e.g. Submit monthly MIS report"/>
+        </div>
+        <div class="form-group">
+          <label>Doer Name *</label>
+          <select id="t-doer"><option value="">Select Doer</option></select>
+        </div>
+        <div class="form-group">
+          <label>Department</label>
+          <input type="text" id="t-dept" placeholder="Auto-filled" readonly/>
+        </div>
+        <div class="form-group">
+          <label>Frequency *</label>
+          <select id="t-freq" onchange="toggleDateField()">
+            <option value="">Select</option>
+            <option value="D">D — Daily</option>
+            <option value="W">W — Weekly</option>
+            <option value="F">F — Fortnightly</option>
+            <option value="M">M — Monthly</option>
+            <option value="Q">Q — Quarterly</option>
+            <option value="HF">HF — Half-Yearly</option>
+            <option value="Y">Y — Yearly</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label id="date-field-label">Day / Date</label>
+          <input type="text" id="t-day" placeholder="e.g. Monday / 5 / 15th"/>
+        </div>
+        <div class="form-group">
+          <label>Status</label>
+          <select id="t-status">
+            <option value="Pending">Pending</option>
+            <option value="Done">Done</option>
+            <option value="Overdue">Overdue</option>
+          </select>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:20px;">
+        <button class="btn btn-primary" id="task-save-btn" onclick="saveTask()">Save Task</button>
+        <button class="btn btn-outline" onclick="cancelTaskEdit()">Cancel / Clear</button>
+      </div>
+      <div id="task-msg" style="margin-top:10px;font-size:12px;"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════ -->
+<!--  EDIT TASK MODAL                                      -->
+<!-- ══════════════════════════════════════════════════════ -->
+<div class="modal-overlay" id="edit-task-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Edit Task</div>
+      <button class="modal-close" onclick="closeEditTask()">✕</button>
+    </div>
+    <div class="form-grid">
+      <div class="form-group full">
+        <label>Task</label>
+        <input type="text" id="et-task"/>
+      </div>
+      <div class="form-group">
+        <label>Doer</label>
+        <select id="et-doer"></select>
+      </div>
+      <div class="form-group">
+        <label>Frequency</label>
+        <select id="et-freq">
+          <option value="D">D — Daily</option>
+          <option value="W">W — Weekly</option>
+          <option value="F">F — Fortnightly</option>
+          <option value="M">M — Monthly</option>
+          <option value="Q">Q — Quarterly</option>
+          <option value="HF">HF — Half-Yearly</option>
+          <option value="Y">Y — Yearly</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Day/Date</label>
+        <input type="text" id="et-day"/>
+      </div>
+      <div class="form-group">
+        <label>Status</label>
+        <select id="et-status">
+          <option value="Pending">Pending</option>
+          <option value="Done">Done</option>
+          <option value="Overdue">Overdue</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeEditTask()">Cancel</button>
+      <button class="btn btn-primary" id="et-save-btn" onclick="saveEditTask()">Save Changes</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════ -->
+<!--  WHATSAPP MODAL                                       -->
+<!-- ══════════════════════════════════════════════════════ -->
+<div class="modal-overlay" id="wa-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">📲 Send WhatsApp Reminder</div>
+      <button class="modal-close" onclick="closeWA()">✕</button>
+    </div>
+    <div>
+      <div style="font-size:12px;color:var(--text2);margin-bottom:10px;">Edit message before sending:</div>
+      <textarea id="wa-msg-text" rows="7" style="width:100%;padding:10px;border:1px solid var(--border);border-radius:6px;font-size:13px;line-height:1.6;resize:vertical;outline:none;font-family:var(--font);"></textarea>
+      <div style="font-size:11px;color:var(--text3);margin-top:6px;">Recipient: <span id="wa-phone" style="font-weight:500;"></span></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeWA()">Cancel</button>
+      <button class="btn btn-wa" onclick="openWhatsApp()">Open WhatsApp Web ↗</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════════════════════
+//  ⚠️  IMPORTANT: Paste your Apps Script Web App URL below
+//  Deploy → Manage Deployments → Copy Web App URL (ends in /exec)
+// ══════════════════════════════════════════════════════════════
+const GAS_URL = 'YOUR_APPS_SCRIPT_WEB_APP_URL_HERE';
+
+// ── IN-MEMORY DATA ────────────────────────────────────────────
+let doers       = [];
+let tasks       = [];
+let editTaskRow = null;   // _row of task being edited in modal
+let editDoerRow = null;   // _row of doer being edited in form
+let waPhone     = '';
+
+const FREQ_DAYS  = {D:1, W:7, F:14, M:30, Q:91, HF:182, Y:365};
+const FREQ_LABEL = {D:'Daily', W:'Weekly', F:'Fortnightly', M:'Monthly', Q:'Quarterly', HF:'Half-Yearly', Y:'Yearly'};
+
+// ══════════════════════════════════════════════════════════════
+//  API LAYER — all calls go through here
+// ══════════════════════════════════════════════════════════════
+async function apiGet() {
+  const res  = await fetch(`${GAS_URL}?action=getAllData`);
+  const json = await res.json();
+  if (json.error) throw new Error(json.error);
+  return json;
+}
+
+async function apiPost(action, data) {
+  const res  = await fetch(GAS_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain' },
+    body: JSON.stringify({ action, data })
+  });
+  const json = await res.json();
+  if (json.error) throw new Error(json.error);
+  return json;
+}
+
+// ── LOAD ALL DATA FROM SHEET ──────────────────────────────────
+async function loadAllData(silent) {
+  if (!silent) showLoading(true);
+  try {
+    const json = await apiGet();
+    doers = (json.doers || []);
+    tasks = (json.tasks || []);
+    // Use _row as stable id for edit/delete
+    doers.forEach(d => d.id = d._row);
+    tasks.forEach(t => t.id = t._row);
+    renderAll();
+    if (!silent) toast('Data synced from Google Sheets', 'success');
+  } catch(e) {
+    toast('Failed to load data: ' + e.message, 'error');
+    console.error(e);
+  } finally {
+    showLoading(false);
+  }
+}
+
+async function syncAll() {
+  const btn = document.getElementById('sync-btn');
+  btn.classList.add('syncing');
+  btn.textContent = '↻ Syncing…';
+  await loadAllData(false);
+  btn.classList.remove('syncing');
+  btn.textContent = '↻ Sync';
+}
+
+// ══════════════════════════════════════════════════════════════
+//  NAV
+// ══════════════════════════════════════════════════════════════
+function showPage(id) {
+  document.querySelectorAll('.page').forEach(p  => p.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('page-' + id).classList.add('active');
+  const tabs = {dashboard:0, tasks:1, doers:2, 'add-doer':3, 'add-task':4};
+  document.querySelectorAll('.nav-tab')[tabs[id]]?.classList.add('active');
+
+  if (id === 'dashboard')  renderDashboard();
+  if (id === 'tasks')      renderTasks();
+  if (id === 'doers')      renderDoers();
+  if (id === 'add-task')   { populateDoerSelect(); resetTaskFormTitle(); }
+  if (id === 'add-doer')   resetDoerFormTitle();
+}
+
+function renderAll() {
+  renderDashboard();
+  renderTasks();
+  renderDoers();
+}
+
+// ══════════════════════════════════════════════════════════════
+//  FREQUENCY / STATUS HELPERS
+// ══════════════════════════════════════════════════════════════
+function getNextDueDate(task) {
+  const today  = new Date(); today.setHours(0,0,0,0);
+  const f      = task.frequency;
+  const dayStr = (task.daydate || '').toString().trim().toLowerCase();
+
+  if (f === 'D') return today;
+
+  if (f === 'W') {
+    const days = ['sunday','monday','tuesday','wednesday','thursday','friday','saturday'];
+    const idx  = days.findIndex(d => d.startsWith(dayStr.slice(0,3)));
+    if (idx >= 0) {
+      const d    = new Date(today);
+      const diff = (idx - d.getDay() + 7) % 7;
+      d.setDate(d.getDate() + diff);
+      return d;
+    }
+    return today;
+  }
+
+  if (['M','Q','HF','Y','F'].includes(f)) {
+    const dayNum = parseInt(dayStr);
+    if (!isNaN(dayNum)) {
+      const d = new Date(today.getFullYear(), today.getMonth(), dayNum);
+      if (d < today) {
+        f === 'F' ? d.setDate(d.getDate() + 14) : d.setMonth(d.getMonth() + 1);
+      }
+      return d;
+    }
+    const parsed = new Date(dayStr);
+    if (!isNaN(parsed)) return parsed;
+  }
+  return today;
+}
+
+function diffDays(d1, d2) {
+  return Math.round((d1 - d2) / (1000 * 60 * 60 * 24));
+}
+
+function fmtDate(d) {
+  return d.toLocaleDateString('en-IN', {day:'2-digit', month:'short', year:'numeric'});
+}
+
+function taskStatus(task) {
+  if (task.status === 'Done') return 'Done';
+  const today = new Date(); today.setHours(0,0,0,0);
+  return diffDays(getNextDueDate(task), today) < 0 ? 'Overdue' : 'Pending';
+}
+
+// ══════════════════════════════════════════════════════════════
+//  DASHBOARD
+// ══════════════════════════════════════════════════════════════
+function renderDashboard() {
+  const today = new Date(); today.setHours(0,0,0,0);
+  const d1 = new Date(today); d1.setDate(d1.getDate() + 1);
+  const d2 = new Date(today); d2.setDate(d2.getDate() + 2);
+
+  document.getElementById('dash-date').textContent =
+    today.toLocaleDateString('en-IN', {weekday:'long', day:'numeric', month:'long', year:'numeric'});
+
+  const total      = tasks.length;
+  const done       = tasks.filter(t => t.status === 'Done').length;
+  const overdueN   = tasks.filter(t => taskStatus(t) === 'Overdue').length;
+  const todayCount = tasks.filter(t => t.status !== 'Done' && diffDays(getNextDueDate(t), today) === 0).length;
+
+  document.getElementById('stat-grid').innerHTML = `
+    <div class="stat"><div class="stat-val">${total}</div><div class="stat-lbl">Total Tasks</div></div>
+    <div class="stat good"><div class="stat-val">${done}</div><div class="stat-lbl">Completed</div></div>
+    <div class="stat warn"><div class="stat-val">${todayCount}</div><div class="stat-lbl">Due Today</div></div>
+    <div class="stat danger"><div class="stat-val">${overdueN}</div><div class="stat-lbl">Overdue</div></div>
+    <div class="stat"><div class="stat-val">${doers.length}</div><div class="stat-lbl">Doers</div></div>
+  `;
+
+  const sections = [
+    {label:'Today',             badge:'today-mark', date:today, diff:0},
+    {label:'Tomorrow',          badge:'tmrw',       date:d1,    diff:1},
+    {label:'Day After Tomorrow',badge:'d2',         date:d2,    diff:2},
+  ];
+
+  let fuHtml = '';
+  sections.forEach(sec => {
+    const list = tasks.filter(t => t.status !== 'Done' && diffDays(getNextDueDate(t), today) === sec.diff);
+    if (!list.length) return;
+    fuHtml += `<div class="day-section">
+      <div class="day-label">
+        <span>${sec.label}</span>
+        <span class="day-badge ${sec.badge}">${fmtDate(sec.date)}</span>
+        <span class="day-badge" style="background:var(--surface2);color:var(--text2);">${list.length}</span>
+      </div>`;
+    list.forEach(t => {
+      const doer = doers.find(d => d.name === t.doerName) || {};
+      fuHtml += `<div class="followup-row">
+        <div class="dot pending"></div>
+        <div class="followup-info">
+          <div class="followup-name">${esc(t.task)}</div>
+          <div class="followup-task">${esc(t.doerName)} · ${esc(t.department||'')} · <span class="badge freq">${esc(t.frequency)}</span></div>
+        </div>
+        <div class="followup-right">
+          ${doer.phone ? `<button class="btn btn-wa btn-sm" onclick="openWA('${escA(t.task)}','${escA(t.doerName)}','${escA(doer.phone||'')}','${escA(t.frequency)}')">WA</button>` : ''}
+        </div>
+      </div>`;
+    });
+    fuHtml += '</div>';
+  });
+  document.getElementById('followup-list').innerHTML = fuHtml || '<div class="empty">No follow-ups for the next 2 days 🎉</div>';
+
+  const overdueList = tasks.filter(t => taskStatus(t) === 'Overdue');
+  let odHtml = '';
+  overdueList.forEach(t => {
+    const doer    = doers.find(d => d.name === t.doerName) || {};
+    const daysLate = Math.abs(diffDays(getNextDueDate(t), today));
+    odHtml += `<div class="followup-row">
+      <div class="dot overdue"></div>
+      <div class="followup-info">
+        <div class="followup-name">${esc(t.task)}</div>
+        <div class="followup-task">${esc(t.doerName)} · ${daysLate}d overdue · <span class="badge freq">${esc(t.frequency)}</span></div>
+      </div>
+      <div class="followup-right">
+        ${doer.phone ? `<button class="btn btn-wa btn-sm" onclick="openWA('${escA(t.task)}','${escA(t.doerName)}','${escA(doer.phone||'')}','${escA(t.frequency)}')">WA</button>` : ''}
+      </div>
+    </div>`;
+  });
+  document.getElementById('overdue-list').innerHTML = odHtml || '<div class="empty">No overdue tasks ✅</div>';
+}
+
+// ══════════════════════════════════════════════════════════════
+//  TASK TABLE
+// ══════════════════════════════════════════════════════════════
+function renderTasks() {
+  populateTaskDeptFilter();
+  const search = (document.getElementById('task-search')?.value || '').toLowerCase();
+  const freqF  = document.getElementById('task-filter-freq')?.value  || '';
+  const statF  = document.getElementById('task-filter-status')?.value|| '';
+  const deptF  = document.getElementById('task-filter-dept')?.value  || '';
+
+  const list = tasks.filter(t => {
+    const s = taskStatus(t);
+    return (!search || (t.task + t.doerName + t.department).toLowerCase().includes(search))
+      && (!freqF || t.frequency === freqF)
+      && (!statF || s === statF)
+      && (!deptF || t.department === deptF);
+  });
+
+  const tbody = document.getElementById('task-tbody');
+  if (!list.length) {
+    tbody.innerHTML = `<tr><td colspan="7"><div class="empty">No tasks found</div></td></tr>`;
+    return;
+  }
+  tbody.innerHTML = list.map(t => {
+    const s    = taskStatus(t);
+    const doer = doers.find(d => d.name === t.doerName) || {};
+    return `<tr>
+      <td style="max-width:200px;font-weight:500;">${esc(t.task)}</td>
+      <td>${esc(t.doerName)}</td>
+      <td><span style="font-size:11px;color:var(--text2);">${esc(t.department || '—')}</span></td>
+      <td><span class="badge freq">${esc(t.frequency)}</span> <span style="font-size:11px;color:var(--text3);">${FREQ_LABEL[t.frequency]||''}</span></td>
+      <td style="font-size:12px;">${esc(String(t.daydate || '—'))}</td>
+      <td><span class="badge ${s.toLowerCase()}">${s}</span></td>
+      <td>
+        <div style="display:flex;gap:4px;">
+          <button class="btn btn-outline btn-sm" onclick="openEditTaskModal(${t._row})">Edit</button>
+          <button class="btn btn-sm btn-danger" onclick="confirmDeleteTask(${t._row})">Del</button>
+          ${doer.phone ? `<button class="btn btn-wa btn-sm" onclick="openWA('${escA(t.task)}','${escA(t.doerName)}','${escA(doer.phone||'')}','${escA(t.frequency)}')">WA</button>` : ''}
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function populateTaskDeptFilter() {
+  const depts = [...new Set(tasks.map(t => t.department).filter(Boolean))];
+  const sel   = document.getElementById('task-filter-dept');
+  if (!sel) return;
+  const cur   = sel.value;
+  sel.innerHTML = '<option value="">All Departments</option>' + depts.map(d => `<option ${d===cur?'selected':''}>${d}</option>`).join('');
+}
+
+// ══════════════════════════════════════════════════════════════
+//  DOER TABLE
+// ══════════════════════════════════════════════════════════════
+function renderDoers() {
+  populateDoerDeptFilter();
+  const search = (document.getElementById('doer-search')?.value || '').toLowerCase();
+  const deptF  = document.getElementById('doer-filter-dept')?.value || '';
+
+  const list = doers.filter(d =>
+    (!search || (d.name + d.department + d.email + d.phone).toLowerCase().includes(search))
+    && (!deptF || d.department === deptF)
+  );
+
+  const tbody = document.getElementById('doer-tbody');
+  if (!list.length) {
+    tbody.innerHTML = `<tr><td colspan="6"><div class="empty">No doers found. Add one!</div></td></tr>`;
+    return;
+  }
+  tbody.innerHTML = list.map(d => {
+    const tc = tasks.filter(t => t.doerName === d.name).length;
+    return `<tr>
+      <td style="font-weight:500;">${esc(d.name)}</td>
+      <td>${esc(d.department)}</td>
+      <td style="font-size:12px;color:var(--info);">${esc(d.email || '—')}</td>
+      <td style="font-size:12px;">${esc(d.phone || '—')}</td>
+      <td><span class="badge freq">${tc} task${tc !== 1 ? 's' : ''}</span></td>
+      <td>
+        <div style="display:flex;gap:4px;">
+          <button class="btn btn-outline btn-sm" onclick="editDoerForm(${d._row})">Edit</button>
+          <button class="btn btn-sm btn-danger" onclick="confirmDeleteDoer(${d._row})">Del</button>
+          ${d.phone ? `<button class="btn btn-wa btn-sm" onclick="openWADoer('${escA(d.name)}','${escA(d.phone)}')">WA</button>` : ''}
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function populateDoerDeptFilter() {
+  const depts = [...new Set(doers.map(d => d.department).filter(Boolean))];
+  const sel   = document.getElementById('doer-filter-dept');
+  if (!sel) return;
+  const cur   = sel.value;
+  sel.innerHTML = '<option value="">All Departments</option>' + depts.map(d => `<option ${d===cur?'selected':''}>${d}</option>`).join('');
+}
+
+// ══════════════════════════════════════════════════════════════
+//  DOER FORM  (Add / Edit)
+// ══════════════════════════════════════════════════════════════
+function resetDoerFormTitle() {
+  if (!editDoerRow) document.getElementById('doer-form-title').textContent = 'Add New Doer';
+}
+
+function clearDoerForm() {
+  ['f-name','f-dept','f-email','f-phone'].forEach(id => document.getElementById(id).value = '');
+  editDoerRow = null;
+  document.getElementById('doer-form-title').textContent = 'Add New Doer';
+  document.getElementById('doer-save-btn').textContent = 'Save Doer';
+}
+
+function cancelDoerEdit() {
+  clearDoerForm();
+  showPage('doers');
+}
+
+function editDoerForm(row) {
+  const d = doers.find(x => x._row === row);
+  if (!d) return;
+  editDoerRow = row;
+  document.getElementById('f-name').value  = d.name        || '';
+  document.getElementById('f-dept').value  = d.department  || '';
+  document.getElementById('f-email').value = d.email       || '';
+  document.getElementById('f-phone').value = d.phone       || '';
+  document.getElementById('doer-form-title').textContent = 'Edit Doer';
+  document.getElementById('doer-save-btn').textContent   = 'Update Doer';
+  showPage('add-doer');
+}
+
+async function saveDoer() {
+  const name  = document.getElementById('f-name').value.trim();
+  const dept  = document.getElementById('f-dept').value.trim();
+  const email = document.getElementById('f-email').value.trim();
+  const phone = document.getElementById('f-phone').value.trim();
+
+  if (!name || !dept) {
+    inlineMsg('doer-msg', 'Please fill Name and Department.', 'var(--danger)');
+    return;
+  }
+
+  setLoading('doer-save-btn', true);
+  try {
+    if (editDoerRow) {
+      await apiPost('updateDoer', { _row: editDoerRow, name, department: dept, email, phone });
+      toast('Doer updated successfully!', 'success');
+    } else {
+      await apiPost('addDoer', { name, department: dept, email, phone });
+      toast('Doer added successfully!', 'success');
+    }
+    clearDoerForm();
+    await loadAllData(true);
+    showPage('doers');
+  } catch(e) {
+    toast('Error: ' + e.message, 'error');
+  } finally {
+    setLoading('doer-save-btn', false, editDoerRow ? 'Update Doer' : 'Save Doer');
+  }
+}
+
+async function confirmDeleteDoer(row) {
+  const d = doers.find(x => x._row === row);
+  if (!d || !confirm(`Delete doer "${d.name}"? This cannot be undone.`)) return;
+  try {
+    await apiPost('deleteDoer', { _row: row });
+    toast('Doer deleted.', 'info');
+    await loadAllData(true);
+    renderDoers();
+  } catch(e) {
+    toast('Error: ' + e.message, 'error');
+  }
+}
+
+// ══════════════════════════════════════════════════════════════
+//  TASK FORM  (Add)
+// ══════════════════════════════════════════════════════════════
+function populateDoerSelect(selectedName) {
+  const sel = document.getElementById('t-doer');
+  sel.innerHTML = '<option value="">Select Doer</option>'
+    + doers.map(d => `<option value="${esc(d.name)}" ${d.name === selectedName ? 'selected' : ''}>${esc(d.name)} (${esc(d.department)})</option>`).join('');
+  sel.onchange = () => {
+    const d = doers.find(x => x.name === sel.value);
+    document.getElementById('t-dept').value = d ? d.department : '';
+  };
+  if (selectedName) {
+    const d = doers.find(x => x.name === selectedName);
+    document.getElementById('t-dept').value = d ? d.department : '';
+  }
+}
+
+function toggleDateField() {
+  const f   = document.getElementById('t-freq').value;
+  const lbl = document.getElementById('date-field-label');
+  const map = {D:'—', W:'Day (e.g. Monday)', F:'Date (e.g. 1st, 15th)', M:'Date (e.g. 5)', Q:'Date (e.g. 15)', HF:'Date (e.g. 1)', Y:'Date (e.g. Jan 1)'};
+  lbl.textContent = map[f] || 'Day / Date';
+}
+
+function clearTaskForm() {
+  document.getElementById('t-task').value = '';
+  document.getElementById('t-day').value  = '';
+  document.getElementById('t-doer').value = '';
+  document.getElementById('t-dept').value = '';
+  document.getElementById('t-freq').value = '';
+  document.getElementById('t-status').value = 'Pending';
+}
+
+function cancelTaskEdit() {
+  clearTaskForm();
+  showPage('tasks');
+}
+
+function resetTaskFormTitle() {
+  document.getElementById('task-form-title').textContent  = 'Add New Task';
+  document.getElementById('task-save-btn').textContent    = 'Save Task';
+}
+
+async function saveTask() {
+  const task     = document.getElementById('t-task').value.trim();
+  const doerName = document.getElementById('t-doer').value;
+  const dept     = document.getElementById('t-dept').value.trim();
+  const freq     = document.getElementById('t-freq').value;
+  const day      = document.getElementById('t-day').value.trim();
+  const status   = document.getElementById('t-status').value;
+
+  if (!task || !doerName || !freq) {
+    inlineMsg('task-msg', 'Please fill Task, Doer, and Frequency.', 'var(--danger)');
+    return;
+  }
+
+  setLoading('task-save-btn', true);
+  try {
+    await apiPost('addTask', { task, doerName, department: dept, frequency: freq, daydate: day, status });
+    toast('Task added successfully!', 'success');
+    clearTaskForm();
+    await loadAllData(true);
+    showPage('tasks');
+  } catch(e) {
+    toast('Error: ' + e.message, 'error');
+  } finally {
+    setLoading('task-save-btn', false, 'Save Task');
+  }
+}
+
+// ══════════════════════════════════════════════════════════════
+//  EDIT TASK MODAL
+// ══════════════════════════════════════════════════════════════
+function openEditTaskModal(row) {
+  const t = tasks.find(x => x._row === row);
+  if (!t) return;
+  editTaskRow = row;
+
+  document.getElementById('et-task').value   = t.task      || '';
+  document.getElementById('et-freq').value   = t.frequency || 'D';
+  document.getElementById('et-day').value    = String(t.daydate || '');
+  document.getElementById('et-status').value = t.status    || 'Pending';
+
+  const sel = document.getElementById('et-doer');
+  sel.innerHTML = doers.map(d =>
+    `<option value="${esc(d.name)}" ${d.name === t.doerName ? 'selected' : ''}>${esc(d.name)}</option>`
+  ).join('');
+
+  document.getElementById('edit-task-modal').classList.add('open');
+}
+
+function closeEditTask() {
+  document.getElementById('edit-task-modal').classList.remove('open');
+  editTaskRow = null;
+}
+
+async function saveEditTask() {
+  const t = tasks.find(x => x._row === editTaskRow);
+  if (!t) return;
+
+  const taskVal  = document.getElementById('et-task').value.trim();
+  const doerName = document.getElementById('et-doer').value;
+  const freq     = document.getElementById('et-freq').value;
+  const day      = document.getElementById('et-day').value.trim();
+  const status   = document.getElementById('et-status').value;
+  const doer     = doers.find(d => d.name === doerName) || {};
+
+  setLoading('et-save-btn', true);
+  try {
+    await apiPost('updateTask', {
+      _row:       editTaskRow,
+      task:       taskVal,
+      doerName,
+      department: doer.department || t.department || '',
+      frequency:  freq,
+      daydate:    day,
+      status
+    });
+    toast('Task updated!', 'success');
+    closeEditTask();
+    await loadAllData(true);
+    renderTasks();
+  } catch(e) {
+    toast('Error: ' + e.message, 'error');
+  } finally {
+    setLoading('et-save-btn', false, 'Save Changes');
+  }
+}
+
+async function confirmDeleteTask(row) {
+  const t = tasks.find(x => x._row === row);
+  if (!t || !confirm(`Delete task "${t.task}"? This cannot be undone.`)) return;
+  try {
+    await apiPost('deleteTask', { _row: row });
+    toast('Task deleted.', 'info');
+    await loadAllData(true);
+    renderTasks();
+  } catch(e) {
+    toast('Error: ' + e.message, 'error');
+  }
+}
+
+// ══════════════════════════════════════════════════════════════
+//  WHATSAPP
+// ══════════════════════════════════════════════════════════════
+function openWA(task, doerName, phone, freq) {
+  waPhone = phone.replace(/\D/g, '');
+  const today = new Date().toLocaleDateString('en-IN', {day:'2-digit', month:'short', year:'numeric'});
+  const msg   = `Hello ${doerName},\n\nThis is a gentle reminder for the following task:\n\n📋 *Task:* ${task}\n📅 *Frequency:* ${FREQ_LABEL[freq]||freq}\n🗓 *Date:* ${today}\n\nKindly ensure this is completed on time.\n\nThank you!`;
+  document.getElementById('wa-msg-text').value  = msg;
+  document.getElementById('wa-phone').textContent = phone;
+  document.getElementById('wa-modal').classList.add('open');
+}
+
+function openWADoer(name, phone) {
+  waPhone = phone.replace(/\D/g, '');
+  document.getElementById('wa-msg-text').value    = `Hello ${name},\n\nThis is a reminder from DoerDesk.\n\nPlease check your pending tasks for today.\n\nThank you!`;
+  document.getElementById('wa-phone').textContent = phone;
+  document.getElementById('wa-modal').classList.add('open');
+}
+
+function closeWA() { document.getElementById('wa-modal').classList.remove('open'); }
+
+function openWhatsApp() {
+  const msg = encodeURIComponent(document.getElementById('wa-msg-text').value);
+  window.open(`https://web.whatsapp.com/send?phone=${waPhone}&text=${msg}`, '_blank');
+}
+
+// ══════════════════════════════════════════════════════════════
+//  UI UTILITIES
+// ══════════════════════════════════════════════════════════════
+function showLoading(show) {
+  document.getElementById('loading-screen').classList.toggle('hidden', !show);
+}
+
+function toast(msg, type = 'info') {
+  const container = document.getElementById('toast');
+  const el = document.createElement('div');
+  el.className = `toast-item ${type}`;
+  const icons = {success:'✓', error:'✕', info:'ℹ'};
+  el.innerHTML = `<span>${icons[type]||'ℹ'}</span> ${msg}`;
+  container.appendChild(el);
+  setTimeout(() => el.remove(), 3500);
+}
+
+function inlineMsg(id, msg, color) {
+  const el = document.getElementById(id);
+  el.textContent = msg;
+  el.style.color  = color;
+  setTimeout(() => el.textContent = '', 3000);
+}
+
+function setLoading(btnId, loading, resetLabel) {
+  const btn = document.getElementById(btnId);
+  if (!btn) return;
+  btn.disabled    = loading;
+  btn.textContent = loading ? 'Saving…' : (resetLabel || btn.textContent);
+}
+
+// HTML-safe escape for display
+function esc(s) {
+  return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+// Attribute-safe escape for onclick string args
+function escA(s) {
+  return String(s || '').replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+}
+
+// ══════════════════════════════════════════════════════════════
+//  INIT
+// ══════════════════════════════════════════════════════════════
+loadAllData(false);
+</script>
+</body>
+</html>
